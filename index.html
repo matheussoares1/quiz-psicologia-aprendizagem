@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Interativo</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* APP */
+.app {
+    width: 90%;
+    max-width: 500px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(15px);
+    border-radius: 16px;
+    padding: 25px;
+    color: white;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+/* TELAS */
+.screen {
+    display: none;
+}
+
+.active {
+    display: block;
+}
+
+/* BOTÕES */
+button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.true { background: #00c853; color: white; }
+.false { background: #d50000; color: white; }
+.primary { background: #00c853; color: white; }
+
+/* PROGRESSO */
+.progress {
+    height: 6px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.bar {
+    height: 100%;
+    width: 0%;
+    background: #00ffcc;
+}
+
+/* ADMIN */
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 6px;
+    border: none;
+}
+
+.item {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- MENU -->
+    <div id="menu" class="screen active">
+        <h2>🎮 Quiz</h2>
+        <button onclick="startQuiz()">Jogar</button>
+        <button onclick="openAdmin()">Admin</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div id="quiz" class="screen">
+        <div class="progress"><div class="bar" id="bar"></div></div>
+        <h2 id="question"></h2>
+
+        <button class="true" onclick="answer(true)">✔ Verdadeiro</button>
+        <button class="false" onclick="answer(false)">✖ Falso</button>
+
+        <button id="next" onclick="next()" style="display:none;">Próxima</button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="result" class="screen">
+        <h2>🏆 Resultado</h2>
+        <p id="finalScore"></p>
+        <button onclick="startQuiz()">Jogar novamente</button>
+        <button onclick="goMenu()">Menu</button>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin" class="screen">
+        <h2>⚙️ Gerenciar Perguntas</h2>
+
+        <input id="q" placeholder="Pergunta">
+        <select id="c">
+            <option value="true">Verdadeiro</option>
+            <option value="false">Falso</option>
+        </select>
+
+        <button onclick="add()">Adicionar</button>
+
+        <div id="list"></div>
+
+        <button onclick="goMenu()">Voltar</button>
+    </div>
+
+</div>
+
+<script>
+let questions = JSON.parse(localStorage.getItem("quizVF")) || [
+    { question: "A UECE é a maior Universidade Estadual do Ceará", correct: true },
+    { question: "A UECE/UAB oferece *SOMENTE* o curso de Licenciatura em Computação", correct: false },
+    { question: "Crateús e uma das cidades polos regionais do Estado do Ceará", correct: true }
+
+];
+
+let index = 0;
+let score = 0;
+let answered = false;
+
+// TELAS
+function show(screen){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    document.getElementById(screen).classList.add("active");
+}
+
+// MENU
+function startQuiz(){
+    index = 0;
+    score = 0;
+    show("quiz");
+    loadQuestion();
+}
+
+function goMenu(){
+    show("menu");
+}
+
+function openAdmin(){
+    renderList();
+    show("admin");
+}
+
+// QUIZ
+function loadQuestion(){
+    answered = false;
+    document.getElementById("next").style.display = "none";
+
+    let q = questions[index];
+    document.getElementById("question").innerText = q.question;
+
+    updateBar();
+}
+
+function answer(choice){
+    if(answered) return;
+    answered = true;
+
+    let q = questions[index];
+
+    if(choice === q.correct){
+        score++;
+    }
+
+    document.getElementById("next").style.display = "block";
+}
+
+function next(){
+    index++;
+    if(index < questions.length){
+        loadQuestion();
+    } else {
+        showResult();
+    }
+}
+
+function showResult(){
+    document.getElementById("finalScore").innerText =
+        `${score} de ${questions.length} acertos`;
+
+    show("result");
+}
+
+function updateBar(){
+    let percent = (index / questions.length) * 100;
+    document.getElementById("bar").style.width = percent + "%";
+}
+
+// ADMIN
+function save(){
+    localStorage.setItem("quizVF", JSON.stringify(questions));
+    renderList();
+}
+
+function add(){
+    let q = document.getElementById("q").value;
+    let c = document.getElementById("c").value === "true";
+
+    if(!q) return;
+
+    questions.push({question:q, correct:c});
+    save();
+}
+
+function del(i){
+    questions.splice(i,1);
+    save();
+}
+
+function renderList(){
+    let list = document.getElementById("list");
+    list.innerHTML = "";
+
+    questions.forEach((q,i)=>{
+        let div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+            ${q.question}
+            <button onclick="del(${i})">❌</button>
+        `;
+        list.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>
